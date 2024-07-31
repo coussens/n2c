@@ -9,8 +9,15 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 # Constants for API URLs
-RXNORM_API_URL = "https://rxnav.nlm.nih.gov/REST/rxcui"
-RXCLASS_API_URL = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui"
+
+# for public API
+#RXNORM_API_URL = "https://rxnav.nlm.nih.gov/REST/rxcui"
+#RXCLASS_API_URL = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui"
+
+# for local docker API
+RXNORM_API_URL = "http://localhost:4000/REST/rxcui"
+RXCLASS_API_URL = "http://localhost:4000/REST/rxclass/class/byRxcui"
+
 
 def get_rxcui_from_ndc(ndc, cache):
     """Get RxNorm CUI from NDC, using cache."""
