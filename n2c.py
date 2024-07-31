@@ -6,6 +6,7 @@ import os
 import shelve
 from collections import defaultdict
 from datetime import datetime, timedelta
+import multiprocessing # go brrr
 
 # Constants for API URLs
 
@@ -66,22 +67,6 @@ def validate_ndc(ndc):
     print(f"Invalid NDC format: {ndc}")
     return False
 
-def format_time(seconds):
-    """Format time in seconds to a human-readable format."""
-    periods = [
-        ('hour', 3600),
-        ('minute', 60),
-        ('second', 1)
-    ]
-    time_str = []
-    for period_name, period_seconds in periods:
-        if seconds >= period_seconds:
-            period_value, seconds = divmod(seconds, period_seconds)
-            if period_value > 1:
-                period_name += 's'
-            time_str.append(f"{period_value} {period_name}")
-    return ', '.join(time_str)
-
 def process_ndc_list(input_file, output_file, cache):
     ndc_to_rxcui = {}
     rxcui_to_atc = defaultdict(list)
@@ -94,45 +79,30 @@ def process_ndc_list(input_file, output_file, cache):
 
     total_ndcs = len(ndcs)
     api_calls = 0
-    start_time = datetime.now()
 
-    try:
-        for idx, ndc in enumerate(ndcs, start=1):
-            if ndc in cache:
-                rxcui = cache[ndc]
+    for idx, ndc in enumerate(ndcs, start=1):
+        api_calls += 1
+        rxcui = get_rxcui_from_ndc(ndc, cache)
+
+        # Save the cache every 1000 iterations to minimize data loss; only update user then
+        if idx % 1000 == 0:
+            print(f"Processing - {idx/total_ndcs:.2f}% Completed.")
+            cache.sync()
+            
+        if rxcui:
+            if rxcui in cache: often 
+                atc_classes = cache[rxcui]
             else:
-                current_time = datetime.now()
-                elapsed_time = current_time - start_time
-                api_calls += 1
-                estimated_total_time = (elapsed_time / api_calls) * total_ndcs
-                remaining_time = estimated_total_time - elapsed_time
-                remaining_seconds = int(remaining_time.total_seconds())
-                print(f"Processing {idx}/{total_ndcs}: {ndc} - Estimated completion in {format_time(remaining_seconds)}")
+                atc_classes = get_atc_classes_from_rxcui(rxcui, cache)
+            
+            if atc_classes:
+                ndcs_with_atc += 1
 
-                rxcui = get_rxcui_from_ndc(ndc, cache)
-                # Save the cache every 10 iterations to minimize data loss
-                if idx % 10 == 0:
-                    cache.sync()
+            for atc_class in atc_classes:
+                results.append({'NDC': ndc, 'ATC_class': atc_class})
 
-            if rxcui:
-                if rxcui in cache:
-                    atc_classes = cache[rxcui]
-                else:
-                    atc_classes = get_atc_classes_from_rxcui(rxcui, cache)
-                    # Save the cache every 10 iterations to minimize data loss
-                    if idx % 10 == 0:
-                        cache.sync()
-                
-                if atc_classes:
-                    ndcs_with_atc += 1
-
-                for atc_class in atc_classes:
-                    results.append({'NDC': ndc, 'ATC_class': atc_class})
-            # else:
-                # print(f"No RxCUI found for NDC {ndc}")
-
-        completion_percentage = (ndcs_with_atc / total_ndcs) * 100
-        print(f"Completed: {completion_percentage:.2f}% of NDCs have at least one ATC class associated.")
+    completion_percentage = (ndcs_with_atc / total_ndcs) * 100
+    print(f"Completed: {completion_percentage:.2f}% of NDCs have at least one ATC class associated.")
 
     # De-duplicate the results
     unique_results = {tuple(result.items()) for result in results}
