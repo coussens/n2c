@@ -4,7 +4,6 @@ import csv
 import time
 import os
 import shelve
-import keyboard
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -135,11 +134,6 @@ def process_ndc_list(input_file, output_file, cache):
         completion_percentage = (ndcs_with_atc / total_ndcs) * 100
         print(f"Completed: {completion_percentage:.2f}% of NDCs have at least one ATC class associated.")
 
-    except KeyboardInterrupt:
-        completion_percentage = (ndcs_with_atc / idx) * 100
-        print(f"Interrupted. {completion_percentage:.2f}% of NDCs queried have at least one ATC class associated.")
-        cache.sync()
-
     # De-duplicate the results
     unique_results = {tuple(result.items()) for result in results}
     unique_results = [dict(result) for result in unique_results]
@@ -171,8 +165,6 @@ if __name__ == "__main__":
 
     output_file = generate_output_filename(args.input_file)
     cache_file = generate_cache_filename(args.input_file)
-
-    print("Will start querying the NDCs. If you need to interrupt, press P.")
 
     # Use shelve to create a persistent cache in the same directory as the input file
     with shelve.open(cache_file) as cache:
