@@ -1,11 +1,9 @@
 import argparse
 import requests
 import csv
-import time
 import os
 import shelve
 from collections import defaultdict
-from datetime import datetime, timedelta
 import multiprocessing # go brrr
 
 # Constants for API URLs
@@ -86,11 +84,11 @@ def process_ndc_list(input_file, output_file, cache):
 
         # Save the cache every 1000 iterations to minimize data loss; only update user then
         if idx % 1000 == 0:
-            print(f"Processing - {idx/total_ndcs:.2f}% Completed.")
+            print(f"Processing - {idx/total_ndcs*100:.2f}% Completed.")
             cache.sync()
             
         if rxcui:
-            if rxcui in cache: often 
+            if rxcui in cache:
                 atc_classes = cache[rxcui]
             else:
                 atc_classes = get_atc_classes_from_rxcui(rxcui, cache)
@@ -99,7 +97,7 @@ def process_ndc_list(input_file, output_file, cache):
                 ndcs_with_atc += 1
 
             for atc_class in atc_classes:
-                results.append({'NDC': ndc, 'ATC_class': atc_class})
+                results.append({'NDC': ndc, 'RXCUI': rxcui, 'ATC_class': atc_class})
 
     completion_percentage = (ndcs_with_atc / total_ndcs) * 100
     print(f"Completed: {completion_percentage:.2f}% of NDCs have at least one ATC class associated.")
@@ -110,7 +108,7 @@ def process_ndc_list(input_file, output_file, cache):
 
     # Write results to CSV
     with open(output_file, 'w', newline='') as csvfile:
-        fieldnames = ['NDC', 'ATC_class']
+        fieldnames = ['NDC', 'RXCUI', 'ATC_class']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(unique_results)
