@@ -99,9 +99,6 @@ def process_ndc_list(input_file, output_file, cache):
 
     try:
         for idx, ndc in enumerate(ndcs, start=1):
-            if keyboard.is_pressed('p'):
-                raise KeyboardInterrupt
-
             if ndc in cache:
                 rxcui = cache[ndc]
             else:
